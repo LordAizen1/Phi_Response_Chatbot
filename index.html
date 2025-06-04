@@ -1,0 +1,530 @@
+  <!-- Chat Window (Top Right) -->
+  <div class="chat-window">
+    <div class="chat-prompt">Enter your prompt:</div>
+    <textarea id="promptInput" style="width: 50%; height: 80px; padding: 10px; border-radius: 8px; border: 1px solid #242424; background: rgba(240, 240, 240, 0.08); color: #E0E0E0; font-size: 16px; margin-bottom: 10px; resize: none;" placeholder="Type your message here..."></textarea>
+    <button id="sendButton" style="padding: 10px 20px; background: #00FF66; color: #121212; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 600; transition: background 0.2s ease;">Send</button>
+    <div id="processedPrompt" class="chat-example" style="margin-top: 15px;"></div>
+    <div class="pii-status" id="piiStatus" style="display: none;">
+      PII Detected
+      <div class="pii-info-btn" onclick="togglePiiDetails()">i</div>
+    </div>
+    <div class="user-icon">👤</div>
+  </div>
+  
+  <!-- LLM Response Area -->
+  <div class="llm-response" style="flex: 1; background: rgba(240, 240, 240, 0.02); border: 1px solid #1a1a1a; border-radius: 16px; padding: 24px; margin-top: 20px; color: #E0E0E0; font-size: 16px;">
+      <div style="font-size: 18px; font-weight: 600; color: #00FF66; margin-bottom: 10px; text-shadow: 0 0 8px rgba(0, 255, 102, 0.4);">LLM Response:</div>
+      <div id="llmResponseContent"></div>
+  </div>
+  
+  <!-- Empty Space / PII Details Panel -->
+  <div class="empty-space" id="emptySpace">
+    Additional content area
+  </div>
+  
+  <div class="pii-details" id="piiDetails">
+    <div class="pii-details-header">
+      <div>
+        <div class="pii-details-title">Detected PII (Sanitized before sending to API)</div>
+      </div>
+      <div style="margin-top: 20px; display: flex; align-items: center; gap: 12px; width: 50%;">
+        <div class="pii-count" id="piiCount">0 items</div>
+        <div class="close-btn" onclick="togglePiiDetails()">×</div>
+      </div>
+    </div>
+    
+
+    
+
+    <div id="piiItemsList">
+      <!-- PII items will be added here by JavaScript -->
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+<style>
+    /* --------------------
+       GLOBAL RESET
+       -------------------- */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: #121212;
+      color: #E0E0E0;
+      font-family: "SF Pro Text", "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      transition: background 0.3s ease, color 0.3s ease;
+    }
+    
+    /* Light mode styles */
+    body.light-mode {
+        background: #F0F0F0;
+        color: #333;
+    }
+
+    body.light-mode .window {
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+    }
+
+    body.light-mode .titlebar {
+        background: rgba(240, 240, 240, 0.8);
+        border-bottom-color: #D0D0D0;
+    }
+
+    body.light-mode .hamburger-line {
+        background: #666;
+    }
+
+    body.light-mode .hamburger:hover .hamburger-line {
+        background: #007BFF;
+    }
+    
+    body.light-mode .title {
+        color: #007BFF;
+        text-shadow: none;
+    }
+
+    body.light-mode .settings-icon {
+        fill: #666;
+    }
+    
+    body.light-mode .settings-icon:hover {
+        fill: #007BFF;
+    }
+
+    body.light-mode .sidebar {
+        background: rgba(240, 240, 240, 0.8);
+        border-color: #D0D0D0;
+    }
+
+    body.light-mode .chat-space-btn {
+        background: #E0E0E0;
+        border-color: #D0D0D0;
+        color: #666;
+    }
+
+    body.light-mode .chat-space-btn:hover {
+        border-color: #007BFF;
+        color: #333;
+        background: rgba(0, 123, 255, 0.1);
+    }
+
+    body.light-mode .chat-space-btn.active {
+        border-color: #007BFF;
+        color: #007BFF;
+        background: rgba(0, 123, 255, 0.15);
+    }
+
+    body.light-mode .chat-space-btn.active::before {
+        background: #007BFF;
+    }
+
+    body.light-mode .chat-window {
+        background: rgba(240, 240, 240, 0.8);
+        border-color: #D0D0D0;
+    }
+
+    body.light-mode #promptInput {
+        background: #FFFFFF;
+        border-color: #D0D0D0;
+        color: #333;
+    }
+
+    body.light-mode #sendButton {
+        background: #007BFF;
+        color: #FFFFFF;
+    }
+
+    body.light-mode #sendButton:hover {
+        background: #0056b3;
+    }
+
+    body.light-mode .pii-status {
+        background: rgba(0, 123, 255, 0.1);
+        border-color: rgba(0, 123, 255, 0.3);
+        color: #007BFF;
+    }
+
+    body.light-mode .pii-info-btn {
+        background: rgba(0, 123, 255, 0.15);
+        border-color: rgba(0, 123, 255, 0.4);
+        color: #007BFF;
+    }
+
+    body.light-mode .pii-info-btn:hover {
+        background: rgba(0, 123, 255, 0.25);
+        border-color: rgba(0, 123, 255, 0.6);
+    }
+
+    body.light-mode .user-icon {
+        border-color: #007BFF;
+        background: rgba(0, 123, 255, 0.1);
+        color: #007BFF;
+    }
+
+    body.light-mode .empty-space {
+        background: rgba(240, 240, 240, 0.5);
+        border-color: #D0D0D0;
+        color: #666;
+    }
+    
+    body.light-mode .llm-response {
+        background: rgba(240, 240, 240, 0.5);
+        border-color: #D0D0D0;
+        color: #333;
+    }
+
+    body.light-mode .llm-response div:first-child {
+        color: #007BFF;
+        text-shadow: none;
+    }
+
+    body.light-mode .pii-details {
+        background: rgba(240, 240, 240, 0.5);
+        border-color: #D0D0D0;
+    }
+
+    body.light-mode .pii-details-title {
+        color: #007BFF;
+        text-shadow: none;
+    }
+
+    body.light-mode .pii-count {
+        background: rgba(0, 123, 255, 0.2);
+        color: #007BFF;
+        border-color: rgba(0, 123, 255, 0.4);
+    }
+
+    body.light-mode .close-btn {
+        background: rgba(0, 0, 0, 0.1);
+        border-color: rgba(0, 0, 0, 0.2);
+        color: #666;
+    }
+
+    body.light-mode .close-btn:hover {
+        background: rgba(0, 0, 0, 0.15);
+        color: #333;
+    }
+
+    body.light-mode .pii-item {
+        background: #E0E0E0;
+        border-color: #D0D0D0;
+    }
+
+    body.light-mode .pii-item.orange {
+        border-color: rgba(255, 165, 0, 0.5);
+        background: rgba(255, 165, 0, 0.15);
+    }
+    
+    body.light-mode .pii-item.blue {
+        border-color: rgba(0, 191, 255, 0.5);
+        background: rgba(0, 191, 255, 0.15);
+    }
+
+    body.light-mode .pii-item:hover {
+         transform: translateY(-2px);
+    }
+    
+    body.light-mode .pii-item.orange:hover {
+        background: rgba(255, 165, 0, 0.25);
+        border-color: rgba(255, 165, 0, 0.6);
+    }
+
+    body.light-mode .pii-item.blue:hover {
+        background: rgba(0, 191, 255, 0.25);
+        border-color: rgba(0, 191, 255, 0.6);
+    }
+    
+    body.light-mode .pii-type {
+        color: #333;
+    }
+
+    body.light-mode .pii-type.orange {
+        color: #FFA500;
+    }
+
+    body.light-mode .pii-type.blue {
+        color: #00BFFF;
+    }
+
+    body.light-mode .pii-value {
+        color: #333;
+    }
+
+    body.light-mode .pii-confidence.orange {
+        background: rgba(255, 165, 0, 0.4);
+        color: #A05A00;
+        border-color: rgba(255, 165, 0, 0.6);
+    }
+
+    body.light-mode .pii-confidence.blue {
+        background: rgba(0, 191, 255, 0.4);
+        color: #008FBF;
+        border-color: rgba(0, 191, 255, 0.6);
+    }
+    
+    #themeToggle:hover {
+        color: #00FF66;
+    }
+
+    /* --------------------
+       CHAT WINDOW (TOP RIGHT)
+       -------------------- */
+    .chat-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      align-items: center; /* Center items horizontally */
+    }
+    
+    .chat-window {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      align-items: center; /* Center items horizontally */
+      position: relative; /* Add positioning context for absolute children */
+    }
+    
+    .chat-prompt {
+      font-size: 18px;
+      color: #E0E0E0;
+      margin-bottom: 8px;
+      font-weight: 500;
+      text-align: center; /* Center prompt text */
+    }
+    
+    .chat-example,
+    #processedPrompt {
+      font-size: 20px;
+      color: #A0A0A0;
+      font-weight: 400;
+      line-height: 1.4;
+      margin-bottom: 16px;
+      text-align: center; /* Center example and processed prompt text */
+      margin: 15px auto 16px auto; /* Center the block horizontally */
+      width: 50%; /* Ensure it has a width to be centered */
+    }
+    
+    .llm-response {
+      flex: 1;
+      background: rgba(240, 240, 240, 0.02);
+      border: 1px solid #1a1a1a;
+      border-radius: 16px;
+      padding: 24px;
+      /* margin-top: 20px; Removing margin-top as gap handles spacing */
+      color: #E0E0E0;
+      font-size: 16px;
+      text-align: center; /* Center LLM response text */
+      width: 50%; /* Ensure it takes full width to apply text-align */
+      align-items: center;
+      margin: 20px auto 0 auto; /* Center the block horizontally */
+    }
+
+    /* Style for the prompt input textarea */
+    #promptInput {
+        width: 50%; /* Make the prompt box 50% width */
+        height: 80px;
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid #242424;
+        background: rgba(240, 240, 240, 0.08);
+        color: #E0E0E0;
+        font-size: 16px;
+        margin-bottom: 10px;
+        resize: none;
+    }
+
+    .pii-status {
+      position: absolute;
+      bottom: 20px;
+      left: 50%; /* Position from the left edge */
+      transform: translateX(-50%); /* Shift back by half its width */
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pii-details {
+      flex: 1;
+      width: 50%;
+      background: rgba(240, 240, 240, 0.02);
+      border: 1px solid #1a1a1a;
+      border-radius: 16px;
+      padding: 24px;
+      margin: 20px auto 0 auto;
+      display: none;
+      flex-direction: column;
+      gap: 16px;
+      animation: slideInUp 0.3s ease forwards;
+      align-items: center; /* Center items horizontally within the column flex container */
+    }
+    
+    .pii-details.active {
+      display: flex;
+    }
+</style>
+
+<script>
+  let isPiiDetailsVisible = false;
+  let currentChatSpace = 1;
+  
+  function togglePiiDetails() {
+    const emptySpace = document.getElementById('emptySpace');
+    const piiDetails = document.getElementById('piiDetails');
+    
+    isPiiDetailsVisible = !isPiiDetailsVisible;
+    
+    if (isPiiDetailsVisible) {
+      emptySpace.style.display = 'none';
+      piiDetails.classList.add('active');
+    } else {
+      emptySpace.style.display = 'flex';
+      piiDetails.classList.remove('active');
+    }
+  }
+  
+  // Function to update the chat window and PII details based on data
+  function updateChatDisplay(prompt, entities, llmResponse) {
+      const processedPromptDiv = document.getElementById('processedPrompt');
+      const piiItemsListDiv = document.getElementById('piiItemsList');
+      const piiCountDiv = document.getElementById('piiCount');
+      const piiStatusDiv = document.getElementById('piiStatus');
+      const llmResponseContentDiv = document.getElementById('llmResponseContent');
+
+      // Display prompt with highlights
+      let highlightedPrompt = prompt;
+      // Sort entities by start index in reverse to avoid index issues during replacement
+      entities.sort((a, b) => b.start - a.start);
+      
+      entities.forEach(entity => {
+          const spanClass = entity.label === 'PERSON' ? 'pii-highlight-orange' : 'pii-highlight-blue'; // Basic coloring based on label
+          const highlightedText = `<span class="${spanClass}">${entity.text}</span>`;
+          // This basic replacement might fail with overlapping or nested entities
+          highlightedPrompt = highlightedPrompt.replace(entity.text, highlightedText);
+      });
+      processedPromptDiv.innerHTML = highlightedPrompt;
+
+      // Display PII details
+      piiItemsListDiv.innerHTML = ''; // Clear previous items
+      if (entities.length > 0) {
+          piiStatusDiv.style.display = 'flex';
+          piiCountDiv.textContent = `${entities.length} items`;
+          entities.forEach(entity => {
+              const itemClass = entity.label === 'PERSON' ? 'orange' : 'blue';
+              const piiItemHtml = `
+                  <div class="pii-item ${itemClass}">
+                      <div class="pii-info">
+                          <div class="pii-type ${itemClass}">${entity.label}</div>
+                          <div class="pii-value">${entity.text}</div>
+                      </div>
+                      <div class="pii-confidence ${itemClass}">${(entity.score * 100).toFixed(0)}%</div>
+                  </div>
+              `;
+              piiItemsListDiv.innerHTML += piiItemHtml;
+          });
+      } else {
+          piiStatusDiv.style.display = 'none';
+          piiCountDiv.textContent = '0 items';
+      }
+      
+      // Display LLM response
+      llmResponseContentDiv.textContent = llmResponse;
+  }
+
+  // Event listener for the Send button
+  document.getElementById('sendButton').addEventListener('click', async () => {
+      const promptInput = document.getElementById('promptInput');
+      const prompt = promptInput.value;
+      
+      if (!prompt) {
+          alert("Please enter a prompt.");
+          return;
+      }
+      
+      // Clear previous results
+      document.getElementById('processedPrompt').innerHTML = '';
+      document.getElementById('piiItemsList').innerHTML = '';
+      document.getElementById('piiCount').textContent = '0 items';
+      document.getElementById('piiStatus').style.display = 'none';
+      document.getElementById('llmResponseContent').textContent = 'Loading...';
+
+      try {
+          const response = await fetch('http://127.0.0.1:8000/process_prompt', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ prompt: prompt })
+          });
+          
+          if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
+          const result = await response.json();
+          
+          // Update the display with the results
+          // Note: The backend currently returns entities as list of {text, label}
+          // To implement highlighting correctly, we need start/end indices from the backend.
+          // For now, using a basic text replacement which might not be perfect.
+          updateChatDisplay(prompt, result.entities, result.llm_response);
+          
+      } catch (error) {
+          console.error('Error sending prompt to backend:', error);
+          document.getElementById('llmResponseContent').textContent = 'Error processing prompt.';
+      }
+  });
+
+  // Initial display state (hide PII details on load)
+  document.addEventListener('DOMContentLoaded', () => {
+      togglePiiDetails(); // Hide PII details panel initially
+       // Remove the example content from chat-window on load
+      const chatExample = document.getElementById('chatExample');
+      if(chatExample) chatExample.style.display = 'none';
+  });
+
+  // Placeholder function for chat space selection (can be expanded later)
+  function selectChatSpace(element, spaceNumber) {
+      // This function currently only handles the active state of buttons
+      const allButtons = document.querySelectorAll('.chat-space-btn');
+      allButtons.forEach(btn => btn.classList.remove('active'));
+      element.classList.add('active');
+      currentChatSpace = spaceNumber;
+      // Add logic here to load previous chat history if needed
+  }
+
+  // Theme toggle functionality
+  const themeToggleBtn = document.getElementById('themeToggle');
+  const body = document.body;
+
+  // Load saved theme preference on page load
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme === 'light-mode') {
+      body.classList.add('light-mode');
+  } else {
+      body.classList.remove('light-mode');
+  }
+
+  themeToggleBtn.addEventListener('click', () => {
+      body.classList.toggle('light-mode');
+      // Save the theme preference
+      if (body.classList.contains('light-mode')) {
+          localStorage.setItem('theme', 'light-mode');
+      } else {
+          localStorage.setItem('theme', 'dark-mode'); // Assuming dark mode is the default/initial state
+      }
+  });
+
+</script>
+</body>
+</html> 

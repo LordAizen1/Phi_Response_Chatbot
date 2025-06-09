@@ -13,7 +13,7 @@ This project is an implementation of the coding challenge for the LLM Engineer (
 *   Web-based GUI built with HTML, CSS, and JavaScript.
 *   Console output of detected entities and LLM response.
 *   Visual display of the processed prompt with potential PII highlights and the LLM response in the GUI (Bonus).
-*   Dark mode toggle in the GUI (Bonus).
+*   A vibrant progress bar shows real-time progress of the data flow from user inputting prompt to the llm response.
 
 ## Technologies Used
 

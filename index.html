@@ -1,8 +1,13 @@
   <!-- Chat Window (Top Right) -->
   <div class="chat-window">
     <div class="chat-prompt">Enter your prompt:</div>
-    <textarea id="promptInput" style="width: 50%; height: 80px; padding: 10px; border-radius: 8px; border: 1px solid #242424; background: rgba(240, 240, 240, 0.08); color: #E0E0E0; font-size: 16px; margin-bottom: 10px; resize: none;" placeholder="Type your message here..."></textarea>
+    <textarea id="promptInput" style="width: 50%; height: 300px; padding: 10px; border-radius: 8px; border: 1px solid #242424; background: rgba(240, 240, 240, 0.08); color: #E0E0E0; font-size: 16px; margin-bottom: 10px; resize: none;" placeholder="Type your message here..."></textarea>
     <button id="sendButton" style="padding: 10px 20px; background: #00FF66; color: #121212; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 600; transition: background 0.2s ease;">Send</button>
+    <!-- Progress Bar -->
+    <div id="progress-container" style="width: 50%; margin: 10px auto 0 auto; height: 18px;">
+      <div id="progress-bar" style="height: 8px; width: 0; background: linear-gradient(90deg, #00FF66 60%, #00BFFF 100%); border-radius: 8px; transition: width 0.5s;"></div>
+      <div id="progress-label" style="margin-top: 4px; color: #aaa; font-size: 0.9em; text-align: center;">Waiting for input...</div>
+    </div>
     <div id="processedPrompt" class="chat-example" style="margin-top: 15px;"></div>
     <div class="pii-status" id="piiStatus" style="display: none;">
       PII Detected
@@ -333,7 +338,7 @@
     /* Style for the prompt input textarea */
     #promptInput {
         width: 50%; /* Make the prompt box 50% width */
-        height: 80px;
+        height: 200px;
         padding: 10px;
         border-radius: 8px;
         border: 1px solid #242424;
@@ -421,13 +426,16 @@
           piiCountDiv.textContent = `${entities.length} items`;
           entities.forEach(entity => {
               const itemClass = entity.label === 'PERSON' ? 'orange' : 'blue';
+              const confidence = (typeof entity.score === 'number')
+                ? `<div class="pii-confidence ${itemClass}">${(entity.score * 100).toFixed(0)}%</div>`
+                : '';
               const piiItemHtml = `
                   <div class="pii-item ${itemClass}">
                       <div class="pii-info">
                           <div class="pii-type ${itemClass}">${entity.label}</div>
                           <div class="pii-value">${entity.text}</div>
                       </div>
-                      <div class="pii-confidence ${itemClass}">${(entity.score * 100).toFixed(0)}%</div>
+                      ${confidence}
                   </div>
               `;
               piiItemsListDiv.innerHTML += piiItemHtml;
@@ -441,6 +449,25 @@
       llmResponseContentDiv.textContent = llmResponse;
   }
 
+  // Progress bar logic
+  function setProgress(step) {
+    const bar = document.getElementById('progress-bar');
+    const label = document.getElementById('progress-label');
+    if (step === 0) {
+      bar.style.width = '0%';
+      label.textContent = 'Waiting for input...';
+    } else if (step === 1) {
+      bar.style.width = '33%';
+      label.textContent = 'Prompt sent...';
+    } else if (step === 2) {
+      bar.style.width = '66%';
+      label.textContent = 'Processing (NER + LLM)...';
+    } else if (step === 3) {
+      bar.style.width = '100%';
+      label.textContent = 'Done!';
+    }
+  }
+
   // Event listener for the Send button
   document.getElementById('sendButton').addEventListener('click', async () => {
       const promptInput = document.getElementById('promptInput');
@@ -451,12 +478,14 @@
           return;
       }
       
+      setProgress(1); // Prompt sent
       // Clear previous results
       document.getElementById('processedPrompt').innerHTML = '';
       document.getElementById('piiItemsList').innerHTML = '';
       document.getElementById('piiCount').textContent = '0 items';
       document.getElementById('piiStatus').style.display = 'none';
       document.getElementById('llmResponseContent').textContent = 'Loading...';
+      setTimeout(() => setProgress(2), 400); // Simulate processing step
 
       try {
           const response = await fetch('http://127.0.0.1:8000/process_prompt', {
@@ -478,17 +507,21 @@
           // To implement highlighting correctly, we need start/end indices from the backend.
           // For now, using a basic text replacement which might not be perfect.
           updateChatDisplay(prompt, result.entities, result.llm_response);
+          setProgress(3); // Done!
+          setTimeout(() => setProgress(0), 2000); // Reset after 2 seconds
           
       } catch (error) {
           console.error('Error sending prompt to backend:', error);
           document.getElementById('llmResponseContent').textContent = 'Error processing prompt.';
+          setProgress(0); // Reset progress bar on error
       }
   });
 
   // Initial display state (hide PII details on load)
   document.addEventListener('DOMContentLoaded', () => {
       togglePiiDetails(); // Hide PII details panel initially
-       // Remove the example content from chat-window on load
+      setProgress(0); // Initialize progress bar
+      // Remove the example content from chat-window on load
       const chatExample = document.getElementById('chatExample');
       if(chatExample) chatExample.style.display = 'none';
   });

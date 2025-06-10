@@ -1,4 +1,4 @@
-# PrivChat - LLM Engineer Interview Assignment
+# PrivChat - LLM Engineer Assignment
 
 ![Phi Response Chatbot](Phi_Response_Chatbot.gif)
 

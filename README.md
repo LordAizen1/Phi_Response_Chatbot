@@ -1,6 +1,6 @@
 # PrivChat - LLM Engineer Interview Assignment
 
-![Phi Response Chatbot](Phi_Response_Chatbot.jpeg)
+![Phi Response Chatbot](Phi_Response_Chatbot.gif)
 
 
 This project is an implementation of the coding challenge for the LLM Engineer (Founding Team) position. It demonstrates a simple system for processing user prompts, detecting Personally Identifiable Information (PII) using spaCy, and generating a response using a local Large Language Model (LLM) via Ollama.
